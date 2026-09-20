@@ -14,6 +14,7 @@ export const Contact: React.FC = () => {
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(PERSONAL_INFO.email);
@@ -21,21 +22,49 @@ export const Contact: React.FC = () => {
     setTimeout(() => setCopiedEmail(false), 2500);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) return;
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSubmitted(true);
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#06b6d4', '#ffffff', '#8b5cf6'],
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(PERSONAL_INFO.email)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject || 'Portfolio Inquiry',
+          message: formData.message,
+          _subject: `Portfolio Message from ${formData.name} - ${formData.subject || 'General Inquiry'}`,
+          _template: 'table',
+          _captcha: 'false',
+        }),
       });
-    }, 1000);
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.ok && (result.success === 'true' || result.success === true || response.status === 200)) {
+        setSubmitted(true);
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#06b6d4', '#ffffff', '#8b5cf6'],
+        });
+      } else {
+        setErrorMessage(result.message || 'Unable to transmit message. Please copy my direct email and message me directly.');
+      }
+    } catch {
+      setErrorMessage('Network error while transmitting. Please copy my direct email and message me directly.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -153,6 +182,7 @@ export const Contact: React.FC = () => {
                 <button
                   onClick={() => {
                     setSubmitted(false);
+                    setErrorMessage(null);
                     setFormData({ name: '', email: '', subject: '', message: '' });
                   }}
                   className="see-through-button hover:bg-white hover:text-black text-xs uppercase font-semibold px-6 py-2.5 mt-4"
@@ -210,6 +240,12 @@ export const Contact: React.FC = () => {
                     className="w-full px-4 py-3 rounded-xl bg-black border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors resize-none"
                   />
                 </div>
+
+                {errorMessage && (
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-xs font-mono text-red-400">
+                    {errorMessage}
+                  </div>
+                )}
 
                 <button
                   type="submit"

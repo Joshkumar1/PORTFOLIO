@@ -47,8 +47,8 @@ export const App: React.FC = () => {
         <Contact />
       </main>
 
-      {/* Footer (Giant © — 2026 Display) */}
-      <Footer />
+      {/* Footer */}
+      <Footer onOpenResume={() => setIsResumeModalOpen(true)} />
 
       {/* Modals */}
       <CommandPalette

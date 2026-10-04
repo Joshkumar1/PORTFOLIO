@@ -16,10 +16,20 @@ export const Contact: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [activationNeeded, setActivationNeeded] = useState(false);
+
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(PERSONAL_INFO.email);
     setCopiedEmail(true);
     setTimeout(() => setCopiedEmail(false), 2500);
+  };
+
+  const getMailtoLink = () => {
+    const subject = encodeURIComponent(formData.subject || `Portfolio Message from ${formData.name || 'Visitor'}`);
+    const body = encodeURIComponent(
+      `Hi Josh,\n\n${formData.message || 'I would like to connect with you regarding an opportunity.'}\n\nBest regards,\n${formData.name || 'Visitor'}\nEmail: ${formData.email || 'Not provided'}`
+    );
+    return `mailto:${PERSONAL_INFO.email}?subject=${subject}&body=${body}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,6 +38,7 @@ export const Contact: React.FC = () => {
 
     setLoading(true);
     setErrorMessage(null);
+    setActivationNeeded(false);
 
     try {
       const response = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(PERSONAL_INFO.email)}`, {
@@ -57,11 +68,14 @@ export const Contact: React.FC = () => {
           origin: { y: 0.6 },
           colors: ['#06b6d4', '#ffffff', '#8b5cf6'],
         });
+      } else if (result.message && (result.message.toLowerCase().includes('activation') || result.message.toLowerCase().includes('activate'))) {
+        setActivationNeeded(true);
+        setErrorMessage(result.message);
       } else {
-        setErrorMessage(result.message || 'Unable to transmit message. Please copy my direct email and message me directly.');
+        setErrorMessage(result.message || 'Unable to transmit message automatically. You can send it directly via your mail client below.');
       }
     } catch {
-      setErrorMessage('Network error while transmitting. Please copy my direct email and message me directly.');
+      setErrorMessage('Network or transmission issue. You can click below to send directly via your mail client.');
     } finally {
       setLoading(false);
     }
@@ -108,6 +122,7 @@ export const Contact: React.FC = () => {
             <div className="flex items-center justify-between p-3.5 rounded-2xl bg-black border border-white/10 font-mono text-xs text-white/90">
               <span className="truncate">{PERSONAL_INFO.email}</span>
               <button
+                type="button"
                 onClick={handleCopyEmail}
                 className="see-through-button text-[10px] py-1 px-3"
               >
@@ -115,6 +130,14 @@ export const Contact: React.FC = () => {
                 <span>{copiedEmail ? 'Copied' : 'Copy'}</span>
               </button>
             </div>
+
+            <a
+              href={`mailto:${PERSONAL_INFO.email}`}
+              className="w-full see-through-button justify-center py-2.5 text-xs font-semibold uppercase hover:bg-cyan-400 hover:text-black hover:border-cyan-400 flex items-center gap-2"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>Compose In Mail App</span>
+            </a>
           </motion.div>
 
           {/* Location & Links */}
@@ -177,12 +200,14 @@ export const Contact: React.FC = () => {
                 </div>
                 <h3 className="font-display text-2xl font-bold text-white">Message Transmitted</h3>
                 <p className="text-white/70 text-sm max-w-md mx-auto">
-                  Thank you for reaching out! Your message has been sent successfully. I will get back to you shortly.
+                  Thank you for reaching out! Your message has been sent successfully to {PERSONAL_INFO.name}. I will get back to you shortly.
                 </p>
                 <button
+                  type="button"
                   onClick={() => {
                     setSubmitted(false);
                     setErrorMessage(null);
+                    setActivationNeeded(false);
                     setFormData({ name: '', email: '', subject: '', message: '' });
                   }}
                   className="see-through-button hover:bg-white hover:text-black text-xs uppercase font-semibold px-6 py-2.5 mt-4"
@@ -194,73 +219,115 @@ export const Contact: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-mono uppercase tracking-wider text-white/50">Your Name</label>
+                    <label htmlFor="contact-name" className="text-xs font-mono uppercase tracking-wider text-white/50">Your Name</label>
                     <input
+                      id="contact-name"
                       type="text"
                       required
+                      autoComplete="name"
                       placeholder="Jane Doe"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-black border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-mono uppercase tracking-wider text-white/50">Your Email</label>
+                    <label htmlFor="contact-email" className="text-xs font-mono uppercase tracking-wider text-white/50">Your Email</label>
                     <input
+                      id="contact-email"
                       type="email"
                       required
+                      autoComplete="email"
+                      inputMode="email"
                       placeholder="jane@company.com"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl bg-black border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-mono uppercase tracking-wider text-white/50">Subject</label>
+                  <label htmlFor="contact-subject" className="text-xs font-mono uppercase tracking-wider text-white/50">Subject</label>
                   <input
+                    id="contact-subject"
                     type="text"
                     placeholder="Engineering Role / Project Proposal"
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
+                    className="w-full px-4 py-3 rounded-xl bg-black border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-cyan-400 transition-colors"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-mono uppercase tracking-wider text-white/50">Message</label>
+                  <label htmlFor="contact-message" className="text-xs font-mono uppercase tracking-wider text-white/50">Message</label>
                   <textarea
+                    id="contact-message"
                     required
                     rows={4}
                     placeholder="Tell me about your project or inquiry..."
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl bg-black border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-black border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-cyan-400 transition-colors resize-none"
                   />
                 </div>
 
-                {errorMessage && (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-xs font-mono text-red-400">
-                    {errorMessage}
+                {activationNeeded ? (
+                  <div className="p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs font-mono text-cyan-200 space-y-3">
+                    <p className="font-semibold text-cyan-300">
+                      ⚡ One-time Activation Required
+                    </p>
+                    <p className="text-white/80 leading-relaxed">
+                      FormSubmit requires a one-time email confirmation. An activation link was dispatched to <strong className="text-white">{PERSONAL_INFO.email}</strong>. Once confirmed, submissions deliver automatically.
+                    </p>
+                    <div className="pt-1 flex flex-wrap gap-2">
+                      <a
+                        href={getMailtoLink()}
+                        className="see-through-button text-[11px] py-1.5 px-3 bg-cyan-500 text-black border-cyan-400 hover:bg-white hover:text-black font-bold uppercase"
+                      >
+                        Send via Mail App Now
+                      </a>
+                    </div>
                   </div>
-                )}
+                ) : errorMessage ? (
+                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-xs font-mono text-red-300 space-y-3">
+                    <p>{errorMessage}</p>
+                    <div>
+                      <a
+                        href={getMailtoLink()}
+                        className="see-through-button text-[11px] py-1.5 px-3 bg-white/10 hover:bg-white hover:text-black font-bold uppercase"
+                      >
+                        Send via Mail Client Instead
+                      </a>
+                    </div>
+                  </div>
+                ) : null}
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full see-through-button justify-center py-4 bg-white text-black border-white hover:bg-cyan-400 hover:border-cyan-400 text-xs font-bold uppercase tracking-wider transition-all"
-                >
-                  {loading ? (
-                    <span>Transmitting Message...</span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Send className="w-4 h-4" />
-                      Send Message Now
-                    </span>
-                  )}
-                </button>
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full sm:flex-1 see-through-button justify-center py-4 bg-white text-black border-white hover:bg-cyan-400 hover:border-cyan-400 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <span>Transmitting Message...</span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <Send className="w-4 h-4" />
+                        Send Message Now
+                      </span>
+                    )}
+                  </button>
+
+                  <a
+                    href={getMailtoLink()}
+                    className="w-full sm:w-auto see-through-button justify-center py-4 px-5 text-xs font-semibold uppercase hover:bg-white/10 text-white/80"
+                    title="Send using your default mail app"
+                  >
+                    Open In Mail App
+                  </a>
+                </div>
               </form>
             )}
           </motion.div>

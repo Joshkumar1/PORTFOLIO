@@ -173,7 +173,7 @@ export const OffCanvasMenu: React.FC<OffCanvasMenuProps> = ({
                     <Mail className="w-4 h-4" />
                   </a>
                 </div>
-                <span className="text-xs text-white/40 font-mono">© 2026 {PERSONAL_INFO.name}</span>
+                <span className="text-xs text-white/40 font-mono">© {new Date().getFullYear()} {PERSONAL_INFO.name}</span>
               </div>
             </div>
           </motion.div>

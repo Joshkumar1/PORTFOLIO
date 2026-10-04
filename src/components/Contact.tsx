@@ -71,6 +71,7 @@ export const Contact: React.FC = () => {
       } else if (result.message && (result.message.toLowerCase().includes('activation') || result.message.toLowerCase().includes('activate'))) {
         setActivationNeeded(true);
         setErrorMessage(result.message);
+        window.open(getMailtoLink(), '_self');
       } else {
         setErrorMessage(result.message || 'Unable to transmit message automatically. You can send it directly via your mail client below.');
       }
